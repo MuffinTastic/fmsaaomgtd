@@ -2,7 +2,7 @@
 
 Or fmsaaomgtd for short. Download from the releases page.
 
-Fixes [this bug](https://bugs.mojang.com/browse/MC/issues/MC-138211).
+Fixes [this bug](https://bugs.mojang.com/browse/MC/issues/MC-138211). Which has been around for 8 years btw.
 
 So this:
 
