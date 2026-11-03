@@ -1,5 +1,6 @@
 package dev.muffintastic.fmsaaomgtd.mixin.sodium;
 
+import dev.muffintastic.fmsaaomgtd.ao.OneShotDebug;
 import dev.muffintastic.fmsaaomgtd.ao.SodiumQuadFlip;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.BlockRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material;
@@ -20,6 +21,9 @@ public abstract class SodiumBlockRendererMixin {
         final float[] brightnesses,
         final Material material,
         final CallbackInfo callbackInfo) {
+        if (OneShotDebug.DEBUG) {
+            OneShotDebug.print("sodium:mixin:HEAD", "injection FIRED (first bufferQuad) | material=" + material + " | brightnesses=" + java.util.Arrays.toString(brightnesses));
+        }
         // ROTATED_THIS_QUAD.set(
             SodiumQuadFlip.applyRotation(quad, brightnesses)
         // )

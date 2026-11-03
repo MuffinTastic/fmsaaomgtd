@@ -4,6 +4,7 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
+import java.util.Arrays;
 
 /**
  * Hacky hack for Sodium.
@@ -30,6 +31,7 @@ public final class SodiumQuadFlip {
     private static Field BASE_FIELD;      // QuadViewImpl#baseIndex  (protected int)
     private static int VERTEX_STRIDE;     // EncodingFormat.VERTEX_STRIDE   (public)
     private static int VERTEX_BASE_OFFSET;// EncodingFormat.HEADER_STRIDE   (public)
+    private static int VERTEX_LIGHTMAP_OFFSET; // EncodingFormat.VERTEX_LIGHTMAP (package-private)
     private static int NORMALS_BIT_OFFSET;
     private static int NORMALS_BIT_MASK;
 
@@ -52,10 +54,21 @@ public final class SodiumQuadFlip {
             for (final String sodiumQuadPackage : SODIUM_QUAD_PACKAGES) {
                 if (tryResolve(sodiumQuadPackage)) {
                     usable = true;
+                    if (OneShotDebug.DEBUG) {
+                        OneShotDebug.print("sodium:resolve",
+                            "RESOLVED OK via " + sodiumQuadPackage
+                                + " | VERTEX_STRIDE=" + VERTEX_STRIDE
+                                + ", VERTEX_BASE_OFFSET=" + VERTEX_BASE_OFFSET
+                                + ", lightmap slot=" + VERTEX_LIGHTMAP_OFFSET
+                                + ", normals offset=" + NORMALS_BIT_OFFSET + " mask=0x" + Integer.toHexString(NORMALS_BIT_MASK));
+                    }
                     return;
                 }
             }
             usable = false;
+            if (OneShotDebug.DEBUG) {
+                OneShotDebug.print("sodium:resolve", "FAILED to resolve any candidate package " + Arrays.toString(SODIUM_QUAD_PACKAGES) + " \u2014 sodium flip INACTIVE");
+            }
         }
     }
 
@@ -74,6 +87,21 @@ public final class SodiumQuadFlip {
                 if (VERTEX_STRIDE <= 0 || VERTEX_BASE_OFFSET < 0) {
                     throw new IllegalStateException("unexpected vertex layout: stride=" + VERTEX_STRIDE + ", baseOffset=" + VERTEX_BASE_OFFSET);
                 }
+                
+                // Pull out lightmap information so we can flip quads based on that too
+                // Looks way better, especially when using mods like Nostalgia Tweaks
+                final Field lightmapIndex = encodingFormat.getDeclaredField("VERTEX_LIGHTMAP");
+                lightmapIndex.setAccessible(true);
+
+                final Field vertexX = encodingFormat.getDeclaredField("VERTEX_X");
+                vertexX.setAccessible(true);
+                
+                final int vertexXIndex = vertexX.getInt(null);
+                VERTEX_LIGHTMAP_OFFSET = lightmapIndex.getInt(null) - vertexXIndex;
+
+                if (VERTEX_LIGHTMAP_OFFSET < 0 || VERTEX_LIGHTMAP_OFFSET >= VERTEX_STRIDE) {
+                    throw new IllegalStateException("unexpected VERTEX_LIGHTMAP slot " + VERTEX_LIGHTMAP_OFFSET + " (abs=" + lightmapIndex.getInt(null) + ", X=" + vertexXIndex + ", stride=" + VERTEX_STRIDE + ")");
+                }
 
                 // Use Sodium's own static EncodingFormat#normalFlags(int bits, int flags) like a freaking puppeteer
                 final MethodHandle flagsIntoBits = MethodHandles
@@ -90,6 +118,9 @@ public final class SodiumQuadFlip {
                 NORMALS_BIT_MASK = 0xF << NORMALS_BIT_OFFSET;
                 return true;
             } catch (final Throwable failure) {
+                if (OneShotDebug.DEBUG) {
+                    OneShotDebug.print("sodium:resolve:failed:" + sodiumQuadPackage, failure.getClass().getSimpleName() + ": " + failure.getMessage());
+                }
                 return false;
             }
     }
@@ -102,6 +133,9 @@ public final class SodiumQuadFlip {
     public static boolean applyRotation(final Object quadView, final float[] brightnessesPerVertex) {
         ensureResolved();
         if (!usable || brightnessesPerVertex == null || brightnessesPerVertex.length != 4) {
+            if (OneShotDebug.DEBUG) {
+                OneShotDebug.print("sodium:apply:guard", "early-out: usable=" + usable + ", brightnesses=" + Arrays.toString(brightnessesPerVertex));
+            }
             return false;
         }
 
@@ -109,10 +143,25 @@ public final class SodiumQuadFlip {
         final int base = baseIndexOf(quadView);
 
         if (data == null || data.length < base + VERTEX_BASE_OFFSET + 4 * VERTEX_STRIDE) {
+            if (OneShotDebug.DEBUG) {
+                OneShotDebug.print("sodium:apply:guard", "early-out on data shape: dataNull=" + (data == null) + ", base=" + base + (data != null ? (", data.length=" + data.length) : ""));
+            }
             return false;
         }
 
-        final boolean shouldFlip = AODiagonalFlip.shouldFlipQuad(brightnessesPerVertex, null);
+        final int[] lightmapsPerVertex = new int[4];
+        for (int vertexIndex = 0; vertexIndex < 4; vertexIndex++) {
+            lightmapsPerVertex[vertexIndex] = data[base + VERTEX_BASE_OFFSET + vertexIndex * VERTEX_STRIDE + VERTEX_LIGHTMAP_OFFSET];
+        }
+
+        final boolean shouldFlip = AODiagonalFlip.shouldFlipQuad(brightnessesPerVertex, lightmapsPerVertex);
+        if (OneShotDebug.DEBUG) {
+            OneShotDebug.print("sodium:apply:decision",
+                "first quad seen: brightnesses=" + Arrays.toString(brightnessesPerVertex)
+                    + ", lightmaps=" + Arrays.toString(lightmapsPerVertex)
+                    + ", shouldFlip=" + shouldFlip
+                    + ", base=" + base + ", data[0]=0x" + Integer.toHexString(data[0]));
+        }
 
         if (!shouldFlip) {
             return false;
@@ -122,6 +171,9 @@ public final class SodiumQuadFlip {
         AODiagonalFlip.rotateFourValuesInPlace(brightnessesPerVertex, 1);
         rotateNormalFlagBits(data, base, true);
 
+        if (OneShotDebug.DEBUG) {
+            OneShotDebug.print("sodium:apply:flip", "FLIPPED a quad (brightnesses now " + Arrays.toString(brightnessesPerVertex) + ")");
+        }
         return true;
     }
 
