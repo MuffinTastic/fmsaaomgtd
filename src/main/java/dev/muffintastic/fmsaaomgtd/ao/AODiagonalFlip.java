@@ -7,26 +7,26 @@ public final class AODiagonalFlip {
     private AODiagonalFlip() {}
 
     /**
-     * Decide whether the quad's per-vertex values should be odd-rotated before being written
+     * Decide whether the quad's per-vertex values should be rotated before being written
      * by {@code VertexConsumer.putBulkData}.
      *
-     * @param brightness 4 AO brightness values in baked-vertex order (0..1)
-     * @param lightmap   4 packed (block | sky&lt;&lt;16) light values in baked-vertex order
-     * @return {@code true} = rotate; {@code false} = leave as-is (identity)
+     * @param brightness 4 AO brightness values in vertex order
+     * @param lightmap   4 packed light values (block | sky) in vertex order
+     * @return {@code true} = rotate; {@code false} = leave as-is
      */
     public static boolean shouldFlipQuad(final float[] brightness, final int[] lightmap) {
         if (brightness.length != 4 || lightmap.length != 4) {
-            return false; // defensive: unknown shape, pass through
+            return false; // Probably not a regular face so don't bother
         }
-        // Primary signal: AO brightness decides when it is not perfectly flat.
+        
         if (!allSame(brightness[0], brightness[1], brightness[2], brightness[3])) {
             return shouldFlipQuadInner(brightness[0], brightness[1], brightness[2], brightness[3]);
         }
-        // Secondary signal: packed light values decide only when the brightness is flat.
+
         if (!allSame(lightmap[0], lightmap[1], lightmap[2], lightmap[3])) {
             return shouldFlipQuadInner(lightmap[0], lightmap[1], lightmap[2], lightmap[3]);
         }
-        // Flat on both signals: either split looks identical — keep identity deterministically.
+        
         return false;
     }
 
