@@ -11,8 +11,8 @@ import java.util.Arrays;
  * 
  * Because Sodium bypasses the vanilla mesh generation ({@code VertexConsumer}) entirely, {@link FixedAOVertexConsumer} has no effect.
  * 
- * So, this class applies the same quad flipping logic as the ({@link AODiagonalFlip#shouldFlipQuad}) and rotates the quads in a similar
- * way before Sodium submits them to a buffer.
+ * So, this class applies the same overall quad flipping logic as the vanilla path ({@link AODiagonalFlip#shouldFlipQuad})
+ * and rotates the quads in a similar way before Sodium submits them to a buffer.
  * 
  * And because we need access to some private stuff, we use a bunch of reflection jank. Ew.
  */
