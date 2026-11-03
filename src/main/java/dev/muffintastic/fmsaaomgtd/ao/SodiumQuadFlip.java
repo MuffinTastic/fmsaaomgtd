@@ -112,7 +112,9 @@ public final class SodiumQuadFlip {
             return false;
         }
 
-        if (!AODiagonalFlip.shouldFlipQuad(brightnessesPerVertex, null)) {
+        final boolean shouldFlip = AODiagonalFlip.shouldFlipQuad(brightnessesPerVertex, null);
+
+        if (!shouldFlip) {
             return false;
         }
 

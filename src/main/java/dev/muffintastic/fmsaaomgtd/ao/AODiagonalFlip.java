@@ -15,7 +15,7 @@ public final class AODiagonalFlip {
      * @return {@code true} = rotate; {@code false} = leave as-is
      */
     public static boolean shouldFlipQuad(final float[] brightness, final int[] lightmap) {
-        if (brightness.length != 4 || lightmap.length != 4) {
+        if (brightness.length != 4 || (lightmap != null && lightmap.length != 4)) {
             return false; // Probably not a regular face so don't bother
         }
         

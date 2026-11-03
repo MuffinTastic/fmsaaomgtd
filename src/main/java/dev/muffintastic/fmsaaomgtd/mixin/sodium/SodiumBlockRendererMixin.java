@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BlockRenderer.class)
 public abstract class SodiumBlockRendererMixin {
-    // private static final ThreadLocal<Boolean> ROTATED_THIS_QUAD = new ThreadLocal<>();
+    //private static final ThreadLocal<Boolean> ROTATED_THIS_QUAD = new ThreadLocal<>();
 
     @Inject(method = "bufferQuad(Lnet/caffeinemc/mods/sodium/client/render/frapi/mesh/MutableQuadViewImpl;[FLnet/caffeinemc/mods/sodium/client/render/chunk/terrain/material/Material;)V", at = @At("HEAD"))
     private void fmsaaomgtd_rotateQuadBeforeBuffer(
@@ -26,8 +26,9 @@ public abstract class SodiumBlockRendererMixin {
         ;
     }
 
-    /* // Commented out because I don't think this is necessary and it has a (probably negligible, but existent) cost
+    // Commented out because I don't think this is necessary and it has a (probably negligible, but existent) cost
 
+    /*
     @Inject(method = "bufferQuad(Lnet/caffeinemc/mods/sodium/client/render/frapi/mesh/MutableQuadViewImpl;[FLnet/caffeinemc/mods/sodium/client/render/chunk/terrain/material/Material;)V", at = @At("TAIL"))
     private void fmsaaomgtd_unrotateQuadAfterBuffer(
         final MutableQuadViewImpl quad,
@@ -42,6 +43,5 @@ public abstract class SodiumBlockRendererMixin {
             ROTATED_THIS_QUAD.remove();
         }
     }
-
     */
 }
