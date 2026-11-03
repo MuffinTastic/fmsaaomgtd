@@ -23,8 +23,10 @@ public final class AODiagonalFlip {
             return shouldFlipQuadInner(brightness[0], brightness[1], brightness[2], brightness[3]);
         }
 
-        if (!allSame(lightmap[0], lightmap[1], lightmap[2], lightmap[3])) {
-            return shouldFlipQuadInner(lightmap[0], lightmap[1], lightmap[2], lightmap[3]);
+        if (lightmap != null) {
+            if (!allSame(lightmap[0], lightmap[1], lightmap[2], lightmap[3])) {
+                return shouldFlipQuadInner(lightmap[0], lightmap[1], lightmap[2], lightmap[3]);
+            }
         }
         
         return false;
@@ -76,6 +78,43 @@ public final class AODiagonalFlip {
             System.arraycopy(inVertices, 0 * 8, outVertices, 1 * 8, 8);
             System.arraycopy(inVertices, 1 * 8, outVertices, 2 * 8, 8);
             System.arraycopy(inVertices, 2 * 8, outVertices, 3 * 8, 8);
+        }
+    }
+
+    /**
+     * In-place version of {@link #rotateQuad} for Sodium's render pipeline, where all the
+     * vertex data of each quad lives in a single flat {@code int[]} with one contiguous block of
+     * {@code perVertexStride} ints per vertex (position, color, UV, light, normal, etc.
+     *
+     * @param vertexData         the flat array holding the quad
+     * @param firstVertexBlock   index of the first int of vertex 0
+     * @param perVertexStride    ints per vertex
+     * @param forwardTurns
+     */
+    public static void rotateVertexBlocksInPlace(final int[] vertexData, final int firstVertexBlock, final int perVertexStride, final int forwardTurns) {
+        final int[] savedFirstCorner = new int[perVertexStride];
+        for (int turn = 0; turn < forwardTurns; turn++) {
+            // Save corner 0, then shift corners 3→0, 2→3, 1→2 (each copy reads a slot that hasn't
+            // been overwritten yet), then restore the saved corner 0 into slot 1. Net effect:
+            // old slot (m) lands in slot ((m + 1) % 4)
+            System.arraycopy(vertexData, firstVertexBlock, savedFirstCorner, 0, perVertexStride);
+            System.arraycopy(vertexData, firstVertexBlock + 3 * perVertexStride, vertexData, firstVertexBlock, perVertexStride);
+            System.arraycopy(vertexData, firstVertexBlock + 2 * perVertexStride, vertexData, firstVertexBlock + 3 * perVertexStride, perVertexStride);
+            System.arraycopy(vertexData, firstVertexBlock + perVertexStride, vertexData, firstVertexBlock + 2 * perVertexStride, perVertexStride);
+            System.arraycopy(savedFirstCorner, 0, vertexData, firstVertexBlock + perVertexStride, perVertexStride);
+        }
+    }
+
+    /**
+     * In-place rotation for the 4 per-vertex values of a quad (e.g. {@code float[] brightnesses})
+     */
+    public static void rotateFourValuesInPlace(final float[] perVertex, final int forwardTurns) {
+        for (int turn = 0; turn < forwardTurns; turn++) {
+            final float savedFirst = perVertex[0];
+            perVertex[0] = perVertex[3];
+            perVertex[3] = perVertex[2];
+            perVertex[2] = perVertex[1];
+            perVertex[1] = savedFirst;
         }
     }
 }

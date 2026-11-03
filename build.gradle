@@ -28,6 +28,10 @@ sourceSets.main.resources {
 
 repositories {
     // Add here additional repositories if required by some of the dependencies below.
+    maven {
+        name = "CaffeineMC"
+        url = uri("https://maven.caffeinemc.net/releases")
+    }
 }
 
 base {
@@ -116,6 +120,9 @@ configurations {
 }
 
 dependencies {
+    // Needed only so the Sodium mixin can compile against it, it's not a runtime requirement
+    compileOnly "net.caffeinemc:sodium-neoforge-mod:0.8.13+mc1.21.1"
+
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"

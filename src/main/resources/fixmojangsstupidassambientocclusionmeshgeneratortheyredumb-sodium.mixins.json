@@ -1,0 +1,13 @@
+{
+  "required": false,
+  "package": "dev.muffintastic.fmsaaomgtd.mixin.sodium",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": ["SodiumBlockRendererMixin"],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
